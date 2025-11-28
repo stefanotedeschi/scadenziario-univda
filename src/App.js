@@ -102,49 +102,12 @@ const ResearchScheduler = () => {
     loadEmailSettings();
   }, []);
 
-  // NOTA: Se vuoi usare questa app localmente senza window.storage,
-  // sostituisci le funzioni di storage con localStorage:
-  // 
-  // const loadActivities = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const data = localStorage.getItem('univda-research-activities');
-  //     if (data) {
-  //       setActivities(JSON.parse(data));
-  //     }
-  //   } catch (error) {
-  //     console.log('Nessuna attività salvata');
-  //     setActivities([]);
-  //   }
-  //   setLoading(false);
-  // };
-  //
-  // const saveActivities = async (newActivities) => {
-  //   setSyncing(true);
-  //   try {
-  //     localStorage.setItem('univda-research-activities', JSON.stringify(newActivities));
-  //     setActivities(newActivities);
-  //   } catch (error) {
-  //     console.error('Errore nel salvataggio:', error);
-  //     alert('Errore nel salvataggio. Riprova.');
-  //   }
-  //   setSyncing(false);
-  // };
-
   const loadActivities = async () => {
     setLoading(true);
     try {
-      // Usa window.storage se disponibile (Claude.ai), altrimenti localStorage
-      if (window.storage && window.storage.get) {
-        const result = await window.storage.get('univda-research-activities', true);
-        if (result && result.value) {
-          setActivities(JSON.parse(result.value));
-        }
-      } else {
-        const data = localStorage.getItem('univda-research-activities');
-        if (data) {
-          setActivities(JSON.parse(data));
-        }
+      const result = await window.storage.get('univda-research-activities', true);
+      if (result && result.value) {
+        setActivities(JSON.parse(result.value));
       }
     } catch (error) {
       console.log('Nessuna attività condivisa ancora');
@@ -155,16 +118,9 @@ const ResearchScheduler = () => {
 
   const loadEmailSettings = async () => {
     try {
-      if (window.storage && window.storage.get) {
-        const result = await window.storage.get('univda-email-settings', true);
-        if (result && result.value) {
-          setEmailSettings(JSON.parse(result.value));
-        }
-      } else {
-        const data = localStorage.getItem('univda-email-settings');
-        if (data) {
-          setEmailSettings(JSON.parse(data));
-        }
+      const result = await window.storage.get('univda-email-settings', true);
+      if (result && result.value) {
+        setEmailSettings(JSON.parse(result.value));
       }
     } catch (error) {
       console.log('Impostazioni email non trovate');
@@ -173,11 +129,7 @@ const ResearchScheduler = () => {
 
   const saveEmailSettings = async (settings) => {
     try {
-      if (window.storage && window.storage.set) {
-        await window.storage.set('univda-email-settings', JSON.stringify(settings), true);
-      } else {
-        localStorage.setItem('univda-email-settings', JSON.stringify(settings));
-      }
+      await window.storage.set('univda-email-settings', JSON.stringify(settings), true);
       setEmailSettings(settings);
       alert('Impostazioni email salvate! Le notifiche verranno inviate secondo le tue preferenze.');
     } catch (error) {
@@ -189,11 +141,7 @@ const ResearchScheduler = () => {
   const saveActivities = async (newActivities) => {
     setSyncing(true);
     try {
-      if (window.storage && window.storage.set) {
-        await window.storage.set('univda-research-activities', JSON.stringify(newActivities), true);
-      } else {
-        localStorage.setItem('univda-research-activities', JSON.stringify(newActivities));
-      }
+      await window.storage.set('univda-research-activities', JSON.stringify(newActivities), true);
       setActivities(newActivities);
     } catch (error) {
       console.error('Errore nel salvataggio:', error);
@@ -244,7 +192,7 @@ const ResearchScheduler = () => {
   };
 
   const deleteActivity = (id) => {
-    if (window.confirm('Sei sicuro di voler eliminare questa attività? Verrà rimossa per tutti gli utenti.')) {
+    if (confirm('Sei sicuro di voler eliminare questa attività? Verrà rimossa per tutti gli utenti.')) {
       saveActivities(activities.filter(a => a.id !== id));
     }
   };
@@ -456,7 +404,7 @@ const ResearchScheduler = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Caricamento scadenziario...</p>
+          <p className="text-gray-600">Caricamento scadenziario condiviso...</p>
         </div>
       </div>
     );
@@ -464,8 +412,608 @@ const ResearchScheduler = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - resto del componente uguale all'artifact */}
-      {/* ... */}
+      <div className="bg-blue-600 text-white p-6 shadow-lg">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-3">
+                <Calendar className="w-8 h-8" />
+                Scadenziario Ricerca UniVdA
+              </h1>
+              <p className="text-blue-100 mt-2 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Database condiviso - Tutte le modifiche sono visibili a tutto il team
+              </p>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-800 transition flex items-center gap-2"
+                title="Impostazioni email"
+              >
+                <Mail className="w-5 h-5" />
+                <span className="hidden sm:inline">Email</span>
+              </button>
+              <button
+                onClick={refreshData}
+                disabled={syncing}
+                className="bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-800 transition flex items-center gap-2"
+                title="Aggiorna dati"
+              >
+                <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Aggiorna</span>
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Nuova Attività
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {syncing && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-2">
+          <div className="max-w-7xl mx-auto flex items-center gap-2 text-yellow-800">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Sincronizzazione in corso...</span>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex gap-8 overflow-x-auto">
+            {['dashboard', 'calendario', 'attivita'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-4 px-2 border-b-2 font-medium transition whitespace-nowrap ${
+                  activeTab === tab
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-6">
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">Totale Attività</p>
+                    <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                  </div>
+                  <Calendar className="w-10 h-10 text-blue-500" />
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">In Corso</p>
+                    <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+                  </div>
+                  <Clock className="w-10 h-10 text-yellow-500" />
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">Urgenti</p>
+                    <p className="text-3xl font-bold text-red-600">{stats.urgent}</p>
+                  </div>
+                  <AlertCircle className="w-10 h-10 text-red-500" />
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">Completate</p>
+                    <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
+                  </div>
+                  <CheckCircle className="w-10 h-10 text-green-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-6 border-b">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  Prossime Scadenze
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">Ordinate per urgenza e raggruppate per mese</p>
+              </div>
+              <div className="divide-y">
+                {Object.keys(groupedDeadlines).length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">
+                    Nessuna scadenza in programma
+                  </div>
+                ) : (
+                  Object.entries(groupedDeadlines).map(([monthKey, monthData]) => (
+                    <div key={monthKey} className="p-4">
+                      <h3 className="font-bold text-lg text-gray-900 mb-3 capitalize">
+                        {monthData.month}
+                      </h3>
+                      <div className="space-y-3">
+                        {monthData.activities.map(activity => {
+                          const deadlineInfo = getDeadlineStatus(activity.deadline);
+                          const macro = macrofunctions.find(m => m.id === activity.macrofunction);
+                          return (
+                            <div key={activity.id} className="pl-4 hover:bg-gray-50 p-3 rounded-lg transition">
+                              <div className="flex items-center justify-between gap-4 flex-wrap">
+                                <div className="flex-1 flex items-start gap-3 min-w-0">
+                                  <button
+                                    onClick={() => toggleStatus(activity.id)}
+                                    className="text-gray-300 hover:text-green-500 mt-1 flex-shrink-0"
+                                    title="Segna come completata"
+                                  >
+                                    <CheckCircle className="w-5 h-5" />
+                                  </button>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                                      <span className={`${macro?.color} text-white px-3 py-1 rounded-full text-xs font-semibold`}>
+                                        {macro?.name}
+                                      </span>
+                                      <h3 className="font-semibold text-gray-900">{activity.title}</h3>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                      {activity.responsible && <span>👤 {activity.responsible}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                  <div className={`text-right ${deadlineInfo.bg} px-4 py-2 rounded-lg`}>
+                                    <p className={`text-sm font-semibold ${deadlineInfo.color}`}>
+                                      {new Date(activity.deadline).toLocaleDateString('it-IT')}
+                                    </p>
+                                    <p className={`text-xs ${deadlineInfo.color}`}>
+                                      {getDaysUntilDeadline(activity.deadline)} giorni
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => startEdit(activity)}
+                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                    title="Modifica"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'calendario' && (
+          <div className="space-y-6">
+            {renderCalendar()}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Suggerimento:</strong> Clicca su una scadenza nel calendario per modificarla rapidamente.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'attivita' && (
+          <div className="space-y-6">
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cerca attività..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <select
+                  value={filterMacro}
+                  onChange={(e) => setFilterMacro(e.target.value)}
+                  className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">Tutte le macrofunzioni</option>
+                  {macrofunctions.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">Tutti gli stati</option>
+                  <option value="pending">In corso</option>
+                  <option value="completed">Completate</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {filteredActivities.length === 0 ? (
+                <div className="bg-white p-12 rounded-lg shadow text-center text-gray-500">
+                  Nessuna attività trovata
+                </div>
+              ) : (
+                filteredActivities.map(activity => {
+                  const deadlineInfo = getDeadlineStatus(activity.deadline);
+                  const macro = macrofunctions.find(m => m.id === activity.macrofunction);
+                  return (
+                    <div key={activity.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <button
+                            onClick={() => toggleStatus(activity.id)}
+                            className={`mt-1 ${activity.status === 'completed' ? 'text-green-500' : 'text-gray-300'} hover:text-green-600 transition flex-shrink-0`}
+                            title={activity.status === 'completed' ? 'Riapri attività' : 'Segna come completata'}
+                          >
+                            <CheckCircle className="w-6 h-6" />
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2 flex-wrap">
+                              <span className={`${macro?.color} text-white px-3 py-1 rounded-full text-xs font-semibold`}>
+                                {macro?.name}
+                              </span>
+                              {activity.recurring && (
+                                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">
+                                  Ricorrente
+                                </span>
+                              )}
+                              {activity.status === 'completed' ? (
+                                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">
+                                  Completata
+                                </span>
+                              ) : (
+                                <span className={`${deadlineInfo.bg} ${deadlineInfo.color} px-2 py-1 rounded text-xs font-semibold`}>
+                                  {deadlineInfo.status}
+                                </span>
+                              )}
+                            </div>
+                            <h3 className={`text-lg font-semibold ${activity.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                              {activity.title}
+                            </h3>
+                            <p className="text-gray-600 mt-2">{activity.description}</p>
+                            <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500">
+                              <span>📅 Scadenza: {new Date(activity.deadline).toLocaleDateString('it-IT')}</span>
+                              {activity.responsible && <span>👤 {activity.responsible}</span>}
+                              <span>🔔 Notifica {activity.notifyDays} giorni prima</span>
+                              {activity.createdBy && <span className="text-xs">Creata da: {activity.createdBy}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => startEdit(activity)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => deleteActivity(activity.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Mail className="w-6 h-6" />
+                Impostazioni Email
+              </h2>
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  ℹ️ Configura le notifiche email per ricevere promemoria sulle scadenze.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Email destinatario
+                </label>
+                <input
+                  type="email"
+                  value={emailSettings.email}
+                  onChange={(e) => setEmailSettings({ ...emailSettings, email: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="tuo@email.com"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="enableEmail"
+                  checked={emailSettings.enabled}
+                  onChange={(e) => setEmailSettings({ ...emailSettings, enabled: e.target.checked })}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <label htmlFor="enableEmail" className="text-sm font-semibold text-gray-700">
+                  Abilita notifiche email
+                </label>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="weeklyDigest"
+                  checked={emailSettings.weeklyDigest}
+                  onChange={(e) => setEmailSettings({ ...emailSettings, weeklyDigest: e.target.checked })}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <label htmlFor="weeklyDigest" className="text-sm font-semibold text-gray-700">
+                  Riepilogo settimanale (ogni lunedì)
+                </label>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ <strong>Nota:</strong> Questa è una simulazione. Per attivare realmente l'invio email, sarà necessario integrare un servizio di invio email (es. SendGrid, AWS SES) sul server.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="px-6 py-2 border rounded-lg hover:bg-gray-50 transition"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={() => {
+                  saveEmailSettings(emailSettings);
+                  setShowEmailModal(false);
+                }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+              >
+                <Save className="w-5 h-5" />
+                Salva Impostazioni
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(showAddModal || editingItem) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full my-8">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-2xl font-bold">
+                {editingItem ? 'Modifica Attività' : 'Nuova Attività'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingItem(null);
+                  resetForm();
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                <Users className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-blue-800">
+                  Questa attività sarà visibile a tutto il team dell'ufficio ricerca.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Macrofunzione *
+                </label>
+                <select
+                  value={formData.macrofunction}
+                  onChange={(e) => setFormData({ ...formData, macrofunction: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Seleziona macrofunzione</option>
+                  {macrofunctions.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Titolo Attività *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Es: Presentazione bando PRIN 2025"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Descrizione
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  rows="3"
+                  placeholder="Descrizione dettagliata dell'attività..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Scadenza *
+                </label>
+                <input
+                  type="date"
+                  value={formData.deadline}
+                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Responsabile
+                </label>
+                <input
+                  type="text"
+                  value={formData.responsible}
+                  onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nome del responsabile"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="recurring"
+                  checked={formData.recurring}
+                  onChange={(e) => setFormData({ ...formData, recurring: e.target.checked })}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <label htmlFor="recurring" className="text-sm font-semibold text-gray-700">
+                  Scadenza ricorrente
+                </label>
+              </div>
+
+              {formData.recurring && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Tipo di ricorrenza
+                  </label>
+                  <select
+                    value={formData.recurringType}
+                    onChange={(e) => setFormData({ ...formData, recurringType: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="weekly">Settimanale</option>
+                    <option value="monthly">Mensile</option>
+                    <option value="quarterly">Trimestrale</option>
+                    <option value="yearly">Annuale</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-gray-900 mb-3">Impostazioni Notifiche</h3>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Preavviso notifica
+                  </label>
+                  <select
+                    value={formData.notifyDays}
+                    onChange={(e) => setFormData({ ...formData, notifyDays: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    {notificationOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="notifyEmail"
+                      checked={formData.notifyEmail}
+                      onChange={(e) => setFormData({ ...formData, notifyEmail: e.target.checked })}
+                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <label htmlFor="notifyEmail" className="text-sm text-gray-700">
+                      Notifica via Email
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="notifyPush"
+                      checked={formData.notifyPush}
+                      onChange={(e) => setFormData({ ...formData, notifyPush: e.target.checked })}
+                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <label htmlFor="notifyPush" className="text-sm text-gray-700">
+                      Notifica Push
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingItem(null);
+                  resetForm();
+                }}
+                className="px-6 py-2 border rounded-lg hover:bg-gray-50 transition"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={editingItem ? updateActivity : addActivity}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+              >
+                <Save className="w-5 h-5" />
+                {editingItem ? 'Salva Modifiche' : 'Crea Attività'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
