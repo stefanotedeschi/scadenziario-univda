@@ -105,7 +105,7 @@ const ResearchScheduler = () => {
   const loadActivities = async () => {
     setLoading(true);
     try {
-      const result = await window.storage.get('univda-research-activities', true);
+      const result = await localStorage.getItem('univda-research-activities');
       if (result && result.value) {
         setActivities(JSON.parse(result.value));
       }
@@ -118,7 +118,7 @@ const ResearchScheduler = () => {
 
   const loadEmailSettings = async () => {
     try {
-      const result = await window.storage.get('univda-email-settings', true);
+      const result = await localStorage.getItem('univda-email-settings');
       if (result && result.value) {
         setEmailSettings(JSON.parse(result.value));
       }
@@ -129,7 +129,7 @@ const ResearchScheduler = () => {
 
   const saveEmailSettings = async (settings) => {
     try {
-      await window.storage.set('univda-email-settings', JSON.stringify(settings), true);
+      await localStorage.setItm('univda-email-settings', JSON.stringify(settings));
       setEmailSettings(settings);
       alert('Impostazioni email salvate! Le notifiche verranno inviate secondo le tue preferenze.');
     } catch (error) {
@@ -141,7 +141,7 @@ const ResearchScheduler = () => {
   const saveActivities = async (newActivities) => {
     setSyncing(true);
     try {
-      await window.storage.set('univda-research-activities', JSON.stringify(newActivities), true);
+      await localStorage.setItem('univda-research-activities', JSON.stringify(newActivities));
       setActivities(newActivities);
     } catch (error) {
       console.error('Errore nel salvataggio:', error);
@@ -192,7 +192,7 @@ const ResearchScheduler = () => {
   };
 
   const deleteActivity = (id) => {
-    if (confirm('Sei sicuro di voler eliminare questa attività? Verrà rimossa per tutti gli utenti.')) {
+    if (window.confirm('Sei sicuro di voler eliminare questa attività? Verrà rimossa per tutti gli utenti.')) {
       saveActivities(activities.filter(a => a.id !== id));
     }
   };
